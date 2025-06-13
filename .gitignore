@@ -1,0 +1,13 @@
+# Arquivo de variáveis de ambiente - NUNCA versionar!
+.env
+
+# Binário compilado (se você usar 'go build')
+biblia-api-go
+biblia-api-go.exe
+
+# Dependências do Go (pasta vendor)
+vendor/
+
+# Arquivos de configuração de IDEs comuns
+.vscode/
+.idea/
