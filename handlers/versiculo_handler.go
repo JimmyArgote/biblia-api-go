@@ -1,13 +1,14 @@
 package handlers
 
 import (
+	"database/sql"
 	"log"
 	"net/http"
 	"strconv"
 
+	"github.com/JimmyArgote/biblia-api-go/database"
+	"github.com/JimmyArgote/biblia-api-go/models"
 	"github.com/gin-gonic/gin"
-	"github.com/seu-usuario/biblia-api-go/database"
-	"github.com/seu-usuario/biblia-api-go/models"
 )
 
 // ListarVersiculos busca os versículos de um capítulo e livro específicos.
@@ -132,9 +133,59 @@ func ListarVersiculoUnico(c *gin.Context) {
 	c.JSON(http.StatusOK, versiculos)
 }
 
+// ObterVersiculoPorNumero busca um único versículo pelo número, não pelo ID.
+func ObterVersiculoPorNumero(c *gin.Context) {
+	// Lendo os PARÂMETROS DE CAMINHO com c.Param()
+	livroID := c.Param("livro_id")
+	capituloID := c.Param("capitulo_id")
+	numeroVersiculo := c.Param("numero_versiculo") // O número do versículo
+
+	if livroID == "" || capituloID == "" || numeroVersiculo == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "IDs do livro, capítulo e o número do versículo são obrigatórios no caminho da URL."})
+		return
+	}
+
+	// Query corrigida para buscar pelo NÚMERO do versículo, não pelo ID.
+	query := `
+		SELECT id, livro_id, capitulo_id, versao_id, numero, formatado
+		FROM versiculo
+		WHERE livro_id = ? AND capitulo_id = ? AND numero = ?` // <- MUDANÇA IMPORTANTE: numero = ?
+
+	// Usamos QueryRow pois esperamos no máximo 1 resultado.
+	row := database.DB.QueryRow(query, livroID, capituloID, numeroVersiculo)
+
+	var v models.Versiculo
+	// Usamos Scan diretamente no 'row'.
+	err := row.Scan(&v.ID, &v.LivroID, &v.CapituloID, &v.VersaoID, &v.Numero, &v.Formatado)
+	if err != nil {
+		// Se 'sql.ErrNoRows', significa que não encontrou nada.
+		if err == sql.ErrNoRows {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Versículo não encontrado"})
+			return
+		}
+		// Outros erros são erros de servidor.
+		log.Printf("Erro ao escanear versículo: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao buscar dados do versículo"})
+		return
+	}
+
+	// Retorna um único objeto JSON, não um array.
+	c.JSON(http.StatusOK, v)
+}
+
 // Pesquisar busca por uma palavra no texto dos versículos via POST.
 func Pesquisar(c *gin.Context) {
-	palavra := c.PostForm("palavra")
+	// 1. Crie uma variável do tipo da sua nova struct.
+	var requestBody models.PesquisaRequest
+
+	// 2. Use ShouldBindJSON para preencher a struct com os dados do corpo da requisição.
+	if err := c.ShouldBindJSON(&requestBody); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Corpo da requisição inválido", "details": err.Error()})
+		return
+	}
+
+	// 3. Agora, use o valor da struct.
+	palavra := requestBody.Palavra
 
 	if palavra == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "insira uma palavra chave para fazer sua busca!"})
@@ -148,7 +199,7 @@ func Pesquisar(c *gin.Context) {
 		FROM versiculo vers
 		INNER JOIN livro ON vers.livro_id = livro.id
 		INNER JOIN capitulo cap ON vers.capitulo_id = cap.id
-		WHERE vers.Formatado LIKE CONCAT('%', ?, '%')
+		WHERE MATCH(vers.texto) AGAINST(? IN NATURAL LANGUAGE MODE)
 		ORDER BY vers.livro_id ASC, vers.capitulo_id ASC, vers.numero ASC`
 
 	rows, err := database.DB.Query(query, palavra)

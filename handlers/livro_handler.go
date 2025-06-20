@@ -4,9 +4,9 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/JimmyArgote/biblia-api-go/database"
+	"github.com/JimmyArgote/biblia-api-go/models"
 	"github.com/gin-gonic/gin"
-	"github.com/seu-usuario/biblia-api-go/database"
-	"github.com/seu-usuario/biblia-api-go/models"
 )
 
 // ListarLivros busca e retorna todos os livros da Bíblia.
