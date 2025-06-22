@@ -3,8 +3,8 @@ package main
 import (
 	"log"
 
-	"github.com/JimmyArgote/biblia-api-go/di"
-	"github.com/JimmyArgote/biblia-api-go/handlers"
+	"github.com/JimmyArgote/biblia-api-go/src/di"
+	"github.com/JimmyArgote/biblia-api-go/src/handlers"
 	"github.com/gin-gonic/gin"
 )
 

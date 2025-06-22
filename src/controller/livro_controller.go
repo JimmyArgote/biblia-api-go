@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/JimmyArgote/biblia-api-go/models"
-	"github.com/JimmyArgote/biblia-api-go/usecase"
+	"github.com/JimmyArgote/biblia-api-go/src/models"
+	"github.com/JimmyArgote/biblia-api-go/src/usecase"
 	"github.com/gin-gonic/gin"
 )
 

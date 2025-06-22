@@ -4,10 +4,10 @@ import (
 	"log"
 	"os"
 
-	"github.com/JimmyArgote/biblia-api-go/controller"
-	"github.com/JimmyArgote/biblia-api-go/database"
-	"github.com/JimmyArgote/biblia-api-go/repository"
-	"github.com/JimmyArgote/biblia-api-go/usecase"
+	"github.com/JimmyArgote/biblia-api-go/src/controller"
+	"github.com/JimmyArgote/biblia-api-go/src/database"
+	"github.com/JimmyArgote/biblia-api-go/src/repository"
+	"github.com/JimmyArgote/biblia-api-go/src/usecase"
 	"github.com/joho/godotenv"
 )
 
