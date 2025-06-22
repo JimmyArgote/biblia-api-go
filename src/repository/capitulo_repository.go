@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/JimmyArgote/biblia-api-go/models"
+	"github.com/JimmyArgote/biblia-api-go/src/models"
 )
 
 type CapituloRepository struct {

@@ -4,8 +4,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/JimmyArgote/biblia-api-go/database"
-	"github.com/JimmyArgote/biblia-api-go/models"
+	"github.com/JimmyArgote/biblia-api-go/src/database"
+	"github.com/JimmyArgote/biblia-api-go/src/models"
 	"github.com/gin-gonic/gin"
 )
 

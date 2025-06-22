@@ -5,7 +5,7 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/JimmyArgote/biblia-api-go/models"
+	"github.com/JimmyArgote/biblia-api-go/src/models"
 )
 
 type VersiculoRepository struct {

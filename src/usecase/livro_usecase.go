@@ -1,8 +1,8 @@
 package usecase
 
 import (
-	"github.com/JimmyArgote/biblia-api-go/models"
-	"github.com/JimmyArgote/biblia-api-go/repository"
+	"github.com/JimmyArgote/biblia-api-go/src/models"
+	"github.com/JimmyArgote/biblia-api-go/src/repository"
 )
 
 type LivroUseCaseInterface interface {
