@@ -20,24 +20,18 @@ func NewCapituloRepository(connection *sql.DB) CapituloRepository {
 
 func (cr *CapituloRepository) GetCapitulosByLivroId(id_livro int) ([]models.Capitulo, error) {
 
-	query, err := cr.connection.Prepare("SELECT id, livro_id, versao_id, titulo FROM capitulo WHERE livro_id = ?")
+	rows, err := cr.connection.Query("SELECT id, livro_id, versao_id, titulo FROM capitulo WHERE livro_id = ? ORDER BY id", id_livro)
 
 	if err != nil {
 		log.Printf("Erro ao executar a query de capitulo: %v", err)
 		return []models.Capitulo{}, err
 	}
-
-	rows, err := query.Query(id_livro)
-
-	if err != nil {
-		log.Printf("Erro ao executar a query de capitulo: %v", err)
-		return []models.Capitulo{}, err
-	}
+	defer rows.Close()
 
 	capitulosList := []models.Capitulo{}
-	capituloObj := models.Capitulo{}
 
 	for rows.Next() {
+		var capituloObj models.Capitulo
 		err := rows.Scan(
 			&capituloObj.ID,
 			&capituloObj.LivroID,
@@ -52,8 +46,14 @@ func (cr *CapituloRepository) GetCapitulosByLivroId(id_livro int) ([]models.Capi
 		capitulosList = append(capitulosList, capituloObj)
 	}
 
-	rows.Close()
-	query.Close()
+	// Verifique por erros durante a iteração
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	if len(capitulosList) == 0 {
+		return nil, sql.ErrNoRows
+	}
 
 	return capitulosList, nil
 }
@@ -69,7 +69,7 @@ func (cr *CapituloRepository) GetCapituloByLivroIdAndCapituloId(id_livro int, id
 
 	var capitulo models.Capitulo
 
-	err = query.QueryRow(id_capitulo).Scan(
+	err = query.QueryRow(id_livro, id_capitulo).Scan(
 		&capitulo.ID,
 		&capitulo.LivroID,
 		&capitulo.VersaoID,
@@ -83,5 +83,5 @@ func (cr *CapituloRepository) GetCapituloByLivroIdAndCapituloId(id_livro int, id
 
 	query.Close()
 
-	return &capitulo, nil
+	return &capitulo, err
 }

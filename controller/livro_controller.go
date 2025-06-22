@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"database/sql"
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -9,60 +11,85 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type livroController struct {
+type LivroController struct {
 	livroUseCase usecase.LivroUseCase
 }
 
-func NewLivroController(usecase usecase.LivroUseCase) livroController {
-	return livroController{
+func NewLivroController(usecase usecase.LivroUseCase) LivroController {
+	return LivroController{
 		livroUseCase: usecase,
 	}
 }
 
-func (lc *livroController) GetLivros(c *gin.Context) {
+func (lc *LivroController) GetLivros(ctx *gin.Context) {
+
 	livros, err := lc.livroUseCase.GetLivros()
+
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao buscar livros"})
+
+		if errors.Is(err, sql.ErrNoRows) {
+			// Se 'sql.ErrNoRows', significa que não encontrou nada.
+			ctx.JSON(
+				http.StatusNotFound,
+				gin.H{"Error": true, "Message": "Livros não encontrados."},
+			)
+
+		} else {
+			// Para qualquer outro erro inesperado (ex: falha de conexão com o banco)
+			ctx.JSON(
+				http.StatusInternalServerError,
+				gin.H{"Error": true, "Message": "Ocorreu um erro interno."},
+			)
+		}
+
 		return
 	}
 
-	c.JSON(http.StatusOK, livros)
+	ctx.JSON(http.StatusOK, livros)
 }
 
-func (lc *livroController) GetLivroByID(c *gin.Context) {
+func (lc *LivroController) GetLivroByID(ctx *gin.Context) {
 
-	id := c.Param("livroId")
-	if id == "" {
-		response := models.Response{
-			Message: "Id do Livro nao pode ser nulo",
-		}
-		c.JSON(http.StatusBadRequest, response)
-		return
+	livroId := ctx.Param("livroId")
+
+	response := models.Response{
+		Message: "",
+		Error:   true,
 	}
 
-	livroId, err := strconv.Atoi(id)
+	id_livro, err := strconv.Atoi(livroId)
 	if err != nil {
-		response := models.Response{
-			Message: "Id do Livro precisa ser um numero",
-		}
-		c.JSON(http.StatusBadRequest, response)
+		response.Message = "Id do Livro precisa ser um número."
+		ctx.JSON(http.StatusBadRequest, response)
 		return
 	}
 
-	livro, err := lc.livroUseCase.GetLivroById(livroId)
+	if id_livro <= 0 {
+		response.Message = "O Id do Livro deve ser um número positivo."
+		ctx.JSON(http.StatusBadRequest, response)
+		return
+	}
+
+	livro, err := lc.livroUseCase.GetLivroById(id_livro)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, err)
-		return
-	}
 
-	if livro == nil {
-		response := models.Response{
-			Message: "Livro nao foi encontrado na base de dados",
+		if errors.Is(err, sql.ErrNoRows) {
+			// Se 'sql.ErrNoRows', significa que não encontrou nada.
+			ctx.JSON(
+				http.StatusNotFound,
+				gin.H{"Error": true, "Message": "Livro não encontrado."},
+			)
+
+		} else {
+			// Para qualquer outro erro inesperado (ex: falha de conexão com o banco)
+			ctx.JSON(
+				http.StatusInternalServerError,
+				gin.H{"Error": true, "Message": "Ocorreu um erro interno."},
+			)
 		}
-		c.JSON(http.StatusNotFound, response)
+
 		return
 	}
 
-	c.JSON(http.StatusOK, livro)
-
+	ctx.JSON(http.StatusOK, livro)
 }

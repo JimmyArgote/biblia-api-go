@@ -21,12 +21,20 @@ func NewLivroUseCase(repo repository.LivroRepository) LivroUseCase {
 }
 
 func (lu *LivroUseCase) GetLivros() ([]models.Livro, error) {
-	return lu.repository.GetLivros()
+
+	livros, err := lu.repository.GetLivros()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return livros, nil
 }
 
 func (lu *LivroUseCase) GetLivroById(id_livro int) (*models.Livro, error) {
 
 	livro, err := lu.repository.GetLivroById(id_livro)
+
 	if err != nil || livro == nil {
 		return nil, err
 	}

@@ -2,66 +2,38 @@ package main
 
 import (
 	"log"
-	"os"
 
-	"github.com/JimmyArgote/biblia-api-go/controller"
-	"github.com/JimmyArgote/biblia-api-go/database"
+	"github.com/JimmyArgote/biblia-api-go/di"
 	"github.com/JimmyArgote/biblia-api-go/handlers"
-	"github.com/JimmyArgote/biblia-api-go/repository"
-	"github.com/JimmyArgote/biblia-api-go/usecase"
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 )
 
 func main() {
-	// Carregar variáveis de ambiente do arquivo .env
-	err := godotenv.Load()
 
-	if err != nil {
-		log.Println("Aviso: Arquivo .env não encontrado, usando variáveis de ambiente do sistema.")
-	}
+	log.Println("Iniciando a API da Bíblia...")
 
-	// Obter a string de conexão
-	connStr := os.Getenv("DB_CONNECTION_STRING")
-
-	if connStr == "" {
-		log.Fatal("A variável de ambiente DB_CONNECTION_STRING não está definida.")
-	}
-
-	// Inicializar a conexão com o banco de dados
-	database.InitDB(connStr)
-
-	//Camada de repository
-	LivroRepository := repository.NewLivroRepository(database.DB)
-
-	//Camada usecase
-	LivroUseCase := usecase.NewLivroUseCase(LivroRepository)
-
-	//Camada de controllers
-	LivroController := controller.NewLivroController(LivroUseCase)
+	// 1. Construir toda a aplicação com uma única chamada!
+	container := di.NewContainer()
 
 	// Configurar o roteador Gin
 	router := gin.Default()
 
 	// Configurar CORS (Cross-Origin Resource Sharing) para permitir requisições do seu frontend
-	router.Use(func(c *gin.Context) {
+	router.Use(func(ctx *gin.Context) {
 
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE")
+		ctx.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		ctx.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+		ctx.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
+		ctx.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE")
 
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
+		if ctx.Request.Method == "OPTIONS" {
+			ctx.AbortWithStatus(204)
 			return
 		}
 
-		c.Next()
+		ctx.Next()
 	})
 
-	// --- Definindo as rotas da API para corresponder ao projeto ASP.NET ---
-
-	// Rotas do LivrosController.cs
 	// O endpoint "faz-tudo"
 	router.GET("/", handlers.LegacyIndexHandler)
 	router.GET("/Livros", handlers.LegacyIndexHandler)
@@ -75,7 +47,6 @@ func main() {
 	// Rota específica para `ListarVers`
 	router.GET("/Livros/ListarVers", handlers.ListarVersiculos) // Espera ?livro=X&capitulo=Y
 
-	// Rotas do SearchController.cs
 	// O frontend faz um POST para essas rotas
 	router.POST("/Search", handlers.Pesquisar)
 	router.POST("/Search/Index", handlers.Pesquisar)
@@ -91,14 +62,14 @@ func main() {
 
 	apiv2 := router.Group("/api/v2")
 	{
-		apiv2.GET("/livros", LivroController.GetLivros)
-		apiv2.GET("/livro/:livroId", LivroController.GetLivroByID)
+		apiv2.GET("/livros", container.LivroController.GetLivros)
+		apiv2.GET("/livro/:livroId", container.LivroController.GetLivroByID)
 
-		//apiv2.GET("/capitulos/:livroId", LivroController.GetCapitulosByLivroID)
-		//apiv2.GET("/capitulo/:livroId/:capituloId", LivroController.GetCapituloByID)
+		apiv2.GET("/capitulos/:livroId", container.CapituloController.GetCapitulosByLivroId)
+		apiv2.GET("/capitulo/:livroId/:capituloId", container.CapituloController.GetCapituloByLivroIdAndCapituloId)
 
-		//apiv2.GET("/versiculos/:livroId/:capituloId", LivroController.GetVersiculosByCapituloID)
-		//apiv2.GET("/versiculo/:livroId/:capituloId/:versiculoId", LivroController.GetVersiculoByID)
+		apiv2.GET("/versiculos/:livroId/:capituloId", container.VersiculoController.ListByChapter)
+		apiv2.GET("/versiculo/:livroId/:capituloId/:versiculoId", container.VersiculoController.Find)
 	}
 
 	// Iniciar o servidor na porta 8081

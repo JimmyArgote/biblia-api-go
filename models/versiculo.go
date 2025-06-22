@@ -26,6 +26,7 @@ type VersiculoSlim struct {
 // Corresponde ao retorno do método ListarVersiculos no C#.
 type LivroCapVers struct {
 	Error          interface{}     `json:"error"` // Pode ser `false` ou um objeto de erro
+	Message        string          `json:"message"`
 	LivroID        int             `json:"livro_id"`
 	CapituloID     int             `json:"capitulo_id"`
 	VersTotal      int             `json:"vers_total"`
