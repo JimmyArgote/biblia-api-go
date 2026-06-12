@@ -1,0 +1,48 @@
+version: "3.8"
+
+networks:
+  proxy-bible-api:
+    name: proxy-bible-api
+  internal:
+    internal: true
+
+services:
+  app:
+    build: .
+    container_name: biblia-api-go
+    restart: unless-stopped
+    mem_limit: 256m
+    memswap_limit: 256m
+    environment:
+      - DB_CONNECTION_STRING=${DB_CONNECTION_STRING}
+      - GIN_MODE=release
+    networks:
+      - proxy-bible-api
+      - internal
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: mysql:8.0
+    container_name: biblia-mysql
+    restart: unless-stopped
+    mem_limit: 512m
+    memswap_limit: 512m
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: biblia
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mysql_data:

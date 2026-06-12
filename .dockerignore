@@ -1,0 +1,7 @@
+.git
+.gitignore
+conductor/
+.env
+*.md
+Dockerfile
+docker-compose.yml
