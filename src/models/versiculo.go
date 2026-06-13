@@ -39,5 +39,15 @@ type LivroCapVers struct {
 
 // Define a estrutura que esperamos receber no corpo da requisição POST
 type PesquisaRequest struct {
-	Palavra string `json:"palavra"` // A tag `json:"palavra"` diz ao Go para mapear o campo 'palavra' do JSON para este campo.
+	Palavra string `json:"palavra"`
+	Limite  int    `json:"limite"`
+	Offset  int    `json:"offset"`
+}
+
+// PesquisaResponse é a resposta paginada da pesquisa.
+type PesquisaResponse struct {
+	Lista  []Versiculo `json:"lista"`
+	Total  int         `json:"total"`
+	Limite int         `json:"limite"`
+	Offset int         `json:"offset"`
 }

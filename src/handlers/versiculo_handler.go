@@ -173,26 +173,42 @@ func ObterVersiculoPorNumero(c *gin.Context) {
 	c.JSON(http.StatusOK, v)
 }
 
-// Pesquisar busca por uma palavra no texto dos versículos via POST.
+// Pesquisar busca por uma palavra no texto dos versículos via POST com paginação.
 func Pesquisar(c *gin.Context) {
-	// 1. Crie uma variável do tipo da sua nova struct.
 	var requestBody models.PesquisaRequest
 
-	// 2. Use ShouldBindJSON para preencher a struct com os dados do corpo da requisição.
 	if err := c.ShouldBindJSON(&requestBody); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Corpo da requisição inválido", "details": err.Error()})
 		return
 	}
 
-	// 3. Agora, use o valor da struct.
 	palavra := requestBody.Palavra
-
 	if palavra == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "insira uma palavra chave para fazer sua busca!"})
 		return
 	}
 
-	// Sintaxe SQL ajustada, usando CONCAT para o LIKE no MySQL.
+	limite := requestBody.Limite
+	if limite <= 0 {
+		limite = 100
+	}
+
+	offset := requestBody.Offset
+	if offset < 0 {
+		offset = 0
+	}
+
+	// Contar total de resultados para paginação (sem JOINs para evitar duplicatas).
+	countQuery := `SELECT COUNT(*) FROM versiculo WHERE MATCH(texto) AGAINST(? IN NATURAL LANGUAGE MODE)`
+
+	var total int
+	if err := database.DB.QueryRow(countQuery, palavra).Scan(&total); err != nil {
+		log.Printf("Erro ao contar resultados da pesquisa: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao realizar pesquisa"})
+		return
+	}
+
+	// Buscar resultados paginados.
 	query := `
 		SELECT DISTINCT vers.id, vers.capitulo_id, vers.livro_id, vers.numero, vers.formatado,
 		livro.nome AS livro_nome, livro.sigla AS livro_sigla, cap.id AS capitulo
@@ -200,9 +216,10 @@ func Pesquisar(c *gin.Context) {
 		INNER JOIN livro ON vers.livro_id = livro.id
 		INNER JOIN capitulo cap ON vers.capitulo_id = cap.id
 		WHERE MATCH(vers.texto) AGAINST(? IN NATURAL LANGUAGE MODE)
-		ORDER BY vers.livro_id ASC, vers.capitulo_id ASC, vers.numero ASC`
+		ORDER BY vers.livro_id ASC, vers.capitulo_id ASC, vers.numero ASC
+		LIMIT ? OFFSET ?`
 
-	rows, err := database.DB.Query(query, palavra)
+	rows, err := database.DB.Query(query, palavra, limite, offset)
 	if err != nil {
 		log.Printf("Erro na query de pesquisa: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao realizar pesquisa"})
@@ -221,7 +238,14 @@ func Pesquisar(c *gin.Context) {
 		resultados = append(resultados, v)
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"lista": resultados,
+	if resultados == nil {
+		resultados = []models.Versiculo{}
+	}
+
+	c.JSON(http.StatusOK, models.PesquisaResponse{
+		Lista:  resultados,
+		Total:  total,
+		Limite: limite,
+		Offset: offset,
 	})
 }
