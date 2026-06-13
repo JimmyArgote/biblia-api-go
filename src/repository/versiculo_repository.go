@@ -79,8 +79,7 @@ func (vr *VersiculoRepository) ListByChapter(id_livro, id_capitulo int) (models.
 		livroCapVers.Message = "Erro ao executar query de versículos"
 		return livroCapVers, err
 	}
-
-	//defer rows.Close()
+	defer rows.Close()
 
 	var versiculosSlimList []models.VersiculoSlim
 
@@ -115,8 +114,6 @@ func (vr *VersiculoRepository) ListByChapter(id_livro, id_capitulo int) (models.
 	livroCapVers.LivroID, _ = strconv.Atoi(livroID)
 	livroCapVers.CapituloID, _ = strconv.Atoi(capituloID)
 	livroCapVers.VersiculosList = versiculosSlimList
-
-	defer rows.Close()
 
 	return livroCapVers, err
 }

@@ -85,6 +85,11 @@ src/
 
 - A busca textual (`/Search`) usa `MATCH(versiculo.texto) AGAINST(? IN NATURAL LANGUAGE MODE)`, o que requer um índice **FULLTEXT** na coluna `versiculo.texto`.
 
+### Models de busca
+
+- `PesquisaRequest`: `palavra` (string, obrigatório), `limite` (int, default 100 se ≤ 0), `offset` (int, default 0 se < 0)
+- `PesquisaResponse`: `lista` ([]Versiculo, nunca null — retorna `[]` vazio), `total` (int, contagem total de resultados), `limite` (int), `offset` (int)
+
 ### Conexão
 
 - Configurada via variável de ambiente `DB_CONNECTION_STRING`
@@ -129,8 +134,8 @@ src/
 | `GET /Livros/ListarVersiculos`    | `ListarVersiculos`        | `handlers/versiculo_handler.go`|
 | `GET /Livros/ListarVersiculo`     | `ListarVersiculoUnico`    | `handlers/versiculo_handler.go`|
 | `GET /Livros/ListarVers`          | `ListarVersiculos`        | `handlers/versiculo_handler.go`|
-| `POST /Search`                    | `Pesquisar`               | `handlers/versiculo_handler.go`|
-| `POST /Search/Index`              | `Pesquisar`               | `handlers/versiculo_handler.go`|
+| `POST /Search`                    | `Pesquisar`               | `handlers/versiculo_handler.go` — corpo: `{"palavra", "limite"?, "offset"?}`; resposta: `{"lista", "total", "limite", "offset"}` |
+| `POST /Search/Index`              | `Pesquisar`               | (idêntico ao acima) |
 
 ### API v1 (`main.go` + `handlers/`)
 
@@ -160,6 +165,20 @@ src/
 4. Repository → UseCase → Controller são instanciados em cadeia
 5. Rotas Gin são registradas com os handlers e controllers
 6. `router.Run(":8081")` inicia o servidor
+
+## Deploy & Infraestrutura
+
+### Docker
+
+- **Dockerfile**: build multi-stage — `golang:1.22-alpine` (compilação) → `alpine:3.20` (runtime). Binário compilado com `CGO_ENABLED=0` e `-ldflags="-s -w"` para imagem mínima. Porta exposta: 8081.
+- **.dockerignore**: exclui `.git`, `conductor/`, `.env`, `*.md`, `Dockerfile`, `docker-compose.yml` do contexto de build.
+- **docker-compose.yml**: dois serviços — `app` (Go API, 256MB) e `db` (MySQL 8.0, 512MB, volume `mysql_data`). Rede `internal` isolada para o banco; rede `proxy-bible-api` para roteamento externo. Healthcheck no MySQL (`mysqladmin ping`) garante que o app só inicia com o banco pronto.
+- **Conexão no Docker**: `DB_CONNECTION_STRING` no compose usa `db` como host (nome do serviço MySQL), construída a partir de `${MYSQL_USER}` e `${MYSQL_PASSWORD}`. `GIN_MODE=release` é setado automaticamente.
+
+### CI/CD
+
+- **`.github/workflows/deploy.yml`**: dispara em push na branch `main`. Builda imagem Docker, pusha para GHCR (`ghcr.io/<repo>:latest`), conecta via SSH ao servidor de produção e executa `docker compose up -d --force-recreate` + `docker image prune -f`.
+- **Secrets necessários no GitHub**: `GHCR_TOKEN`, `SSH_HOST`, `SSH_PORT`, `SSH_USER`, `SSH_KEY`.
 
 ## Considerações para Desenvolvimento
 

@@ -18,7 +18,7 @@ Fornecer acesso programático ao texto bíblico estruturado em livros, capítulo
 
 1. **Catálogo de Livros**: listagem completa dos 66 livros (VT e NT) com ordem canônica
 2. **Navegação Hierárquica**: Livro → Capítulos → Versículos
-3. **Busca Textual**: pesquisa Full-Text nos versículos por palavra-chave
+3. **Busca Textual**: pesquisa Full-Text nos versículos por palavra-chave, com paginação (`limite`/`offset`) e metadados de resultado (`total`)
 4. **Compatibilidade Legada**: rotas no formato do controller C# original (`/Livros/*`)
 5. **API Versionada**: endpoints `/api/v2` com separação clara de responsabilidades
 

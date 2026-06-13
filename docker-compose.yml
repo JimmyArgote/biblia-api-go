@@ -14,7 +14,7 @@ services:
     mem_limit: 256m
     memswap_limit: 256m
     environment:
-      - DB_CONNECTION_STRING=${DB_CONNECTION_STRING}
+      - DB_CONNECTION_STRING=${MYSQL_USER}:${MYSQL_PASSWORD}@tcp(db:3306)/biblia?charset=utf8mb4&parseTime=True&loc=Local
       - GIN_MODE=release
     networks:
       - proxy-bible-api
